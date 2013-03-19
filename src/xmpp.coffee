@@ -122,6 +122,20 @@ class XmppBot extends Adapter
     # ignore our own messages in rooms
     return if from == @robot.name or from == @options.username or from is undefined
 
+    # Pad the message with robot name just incase it was not provided.    
+    # Only pad if this is a direct chat    if stanza.attrs.type is 'chat'      
+    # Following the same name matching pattern as the Robot      
+    if @robot.alias
+      alias = @robot.alias.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') 
+      # escape alias for regexp        
+      newRegex = new RegExp("^(?:#{@robot.alias}[:,]?|#{@name}[:,]?)", "i")     
+    else        
+      newRegex = new RegExp("^#{@name}[:,]?", "i")      
+    
+    # Prefix message if there is no match      
+    unless message.match(newRegex)        
+      message = (@name + " " ) + message    
+      
     # note that 'from' isn't a full JID, just the local user part
     user = @userForId from
     user.type = stanza.attrs.type
