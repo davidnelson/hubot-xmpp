@@ -128,13 +128,13 @@ class XmppBot extends Adapter
       # Following the same name matching pattern as the Robot      
       if @robot.alias
         alias = @robot.alias.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') # escape alias for regexp        
-        newRegex = new RegExp("^(?:#{@robot.alias}[:,]?|#{@name}[:,]?)", "i")     
+        newRegex = new RegExp("^(?:#{@robot.alias}[:,]?|#{@robot.name}[:,]?)", "i")     
       else        
-        newRegex = new RegExp("^#{@name}[:,]?", "i")      
+        newRegex = new RegExp("^#{@robot.name}[:,]?", "i")      
     
       # Prefix message if there is no match      
       unless message.match(newRegex)        
-        message = (@name + " " ) + message    
+        message = (@robot.name + " " ) + message    
       
     # note that 'from' isn't a full JID, just the local user part
     user = @userForId from
