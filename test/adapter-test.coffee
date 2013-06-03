@@ -160,6 +160,7 @@ describe 'XmppBot', ->
             id: 1
       logger:
         debug: () ->
+        warning: () ->
 
     # start with a valid message
     beforeEach ->
@@ -513,3 +514,51 @@ describe 'XmppBot', ->
         done()
 
       bot.send envelope, el
+
+  describe '#online', () ->
+    bot = null
+    beforeEach () ->
+      bot = Bot.use()
+      bot.options =
+        username: 'bot'
+        rooms: [ {jid:'test@example.com', password: false} ]
+
+      bot.client =
+        send: ->
+
+      bot.robot =
+        name: 'bot'
+        logger:
+          debug: () ->
+          info: () ->
+
+    it 'should emit connected event', (done) ->
+      callCount = 0
+      bot.on 'connected', () ->
+        assert.equal callCount, expected.length, 'Call count is wrong'
+        done()
+
+      expected = [
+        (msg) ->
+          assert.equal 'presence', msg.name, 'Element name is incorrect'
+        ,
+        (msg) ->
+          root = msg.tree()
+          assert.equal 'presence', root.name, 'Element name is incorrect'
+          assert.equal "test@example.com/bot", root.attrs.to, 'Msg sent to wrong room'
+      ]
+
+      bot.client.send = (msg) ->
+        expected[callCount](msg) if expected[callCount]
+        callCount++
+
+      bot.online()
+
+    it 'should emit reconnected when connected', (done) ->
+      bot.connected = true
+      bot.on 'reconnected', () ->
+        assert.ok bot.connected
+        assert.ok bot.keepaliveInterval
+        done()
+
+      bot.online()

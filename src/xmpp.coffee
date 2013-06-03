@@ -7,7 +7,7 @@ class XmppBot extends Adapter
   run: ->
     options =
       username: process.env.HUBOT_XMPP_USERNAME
-      password: process.env.HUBOT_XMPP_PASSWORD
+      password: '********'
       host: process.env.HUBOT_XMPP_HOST
       port: process.env.HUBOT_XMPP_PORT
       rooms:    @parseRooms process.env.HUBOT_XMPP_ROOMS.split(',')
@@ -16,8 +16,10 @@ class XmppBot extends Adapter
       preferredSaslMechanism: process.env.HUBOT_XMPP_PREFERRED_SASL_MECHANISM
 
     @robot.logger.info util.inspect(options)
+    options.password = process.env.HUBOT_XMPP_PASSWORD
 
     @client = new Xmpp.Client
+      reconnect: true
       jid: options.username
       password: options.password
       host: options.host
@@ -28,8 +30,10 @@ class XmppBot extends Adapter
     @client.on 'error', @.error
     @client.on 'online', @.online
     @client.on 'stanza', @.read
+    @client.on 'offline', @.offline
 
     @options = options
+    @connected = false
 
   error: (error) =>
     if error.code == "ECONNREFUSED"
@@ -55,11 +59,12 @@ class XmppBot extends Adapter
     @joinRoom room for room in @options.rooms
 
     # send raw whitespace for keepalive
-    setInterval =>
+    @keepaliveInterval = setInterval =>
       @client.send ' '
     , @options.keepaliveInterval
 
-    @emit 'connected'
+    @emit if @connected then 'reconnected' else 'connected'
+    @connected = true
 
   parseRooms: (items) ->
     rooms = []
@@ -277,6 +282,10 @@ class XmppBot extends Adapter
               c('subject').t(string)
 
     @client.send message
+
+  offline: =>
+    @robot.logger.debug "Received offline event"
+    clearInterval(@keepaliveInterval)
 
 exports.use = (robot) ->
   new XmppBot robot
